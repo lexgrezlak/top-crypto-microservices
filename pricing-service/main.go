@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/streadway/amqp"
 	"log"
+	"top-coins/pricing-service/util"
 )
 
 const (
@@ -32,8 +33,13 @@ func main() {
 		log.Fatalf("Failed to set prefetch settings: %v", err)
 	}
 
-	msgs, err := ch.Consume(q.Name, "", false, false, false, false, nil)
+	_, err = ch.Consume(q.Name, "", false, false, false, false, nil)
 	if err != nil {
-		log.Fatalf("Failed to start consumer")
+		log.Fatalf("Failed to start consumer: %v", err)
 	}
+	res, err := util.FetchPrices()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(res)
 }
