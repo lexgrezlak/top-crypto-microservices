@@ -3,7 +3,6 @@ package testUtil
 import (
 	"errors"
 	"github.com/google/go-cmp/cmp"
-	"net/http"
 	"testing"
 )
 
@@ -25,16 +24,4 @@ func CmpErr(t *testing.T, val1 error, val2 error)  {
 }
 
 
-type MockHttpClient struct {
-	MockDo func(req *http.Request) (*http.Response, error)
-}
-
-// We leave the mock function implementation to the test.
-// By default it's gonna return an error
-func (c MockHttpClient) Do(req *http.Request) (*http.Response, error) {
-	if c.MockDo != nil {
-		return c.MockDo(req)
-	}
-	return nil, errors.New("something went wrong")
-}
 

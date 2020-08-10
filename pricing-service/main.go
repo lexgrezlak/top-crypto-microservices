@@ -40,11 +40,19 @@ func main() {
 		log.Fatalf("Failed to start consumer: %v", err)
 	}
 
-	// Get the data from the upstream API.
+	// Set up the API.
 	var c service.HttpClient
 	c = http.DefaultClient
 	api := service.NewAPI(c)
-	cryptos, err := api.ProcessCryptocurrencyBytes()
+
+	// Fetch data from the upstream API.
+	bytes, err := api.FetchCryptocurrencies()
+	if err != nil {
+		log.Fatalf("Failed to fetch cryptocurrencies: %v",err)
+	}
+
+	// Process the bytes into []Cryptocurrency
+	cryptos, err := api.ProcessCryptocurrencyBytes(bytes)
 	if err != nil {
 		log.Fatalf("Failed to get cryptocurrencies: %v",err)
 	}

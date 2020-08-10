@@ -47,7 +47,7 @@ func TestFetchCryptocurrencies(t *testing.T) {
 	}{
 		{
 			"upstream api replies with an error",
-			testUtil.MockHttpClient{MockDo: func(req *http.Request) (*http.Response, error) {
+			mockHttpClient{MockDo: func(req *http.Request) (*http.Response, error) {
 				return nil, mockErr
 			}},
 			struct {
@@ -59,7 +59,7 @@ func TestFetchCryptocurrencies(t *testing.T) {
 		},
 		{
 			"upstream api replies with a proper response",
-			testUtil.MockHttpClient{MockDo: func(req *http.Request) (*http.Response, error) {
+			mockHttpClient{MockDo: func(req *http.Request) (*http.Response, error) {
 				return &http.Response{
 					Body: ioutil.NopCloser(bytes.NewReader(jsonCryptoBytes)),
 				}, nil
