@@ -1,0 +1,137 @@
+// API docs: https://coinmarketcap.com/api/documentation/v1/#section/Quick-Start-Guide
+
+package api
+
+import (
+	"encoding/json"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"net/url"
+)
+
+const (
+	// Normally it should be an environment variable.
+	UPSTREAM_API_KEY = "60c9c458-d3f0-47c7-8b60-6389c5cf9124"
+	UPSTREAM_API_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest"
+	CURRENCY = "USD"
+	LIMIT = "5000"
+	OFFSET = "1"
+)
+
+// There are also other fields available. Check the docs for more information.
+type Currency struct {
+	Price float32 `json:"price"`
+}
+
+type Cryptocurrency struct {
+	Symbol string `json:"symbol"`
+	Quote struct{
+		// We could also define fields for other currencies such as EUR
+		// but USD is the one we're using - set in the `const` variable above.
+		USD Currency`json:"USD"`
+	}`json:"quote"`
+}
+
+type FetchCryptocurrenciesBody struct {
+	Cryptocurrencies []Cryptocurrency `json:"data"`
+}
+
+func GetCryptocurrencies() ([]Cryptocurrency, error) {
+	res, err := fetchCryptocurrencies()
+	if err != nil {
+		log.Printf("Failed to fetch cryptocurrencies: %v", err)
+		return nil, err
+	}
+	var body FetchCryptocurrenciesBody
+	if err := json.Unmarshal(res, &body); err != nil {
+		log.Printf("Failed to unmarshal fetch cryptocurrencies response: %v", err)
+		return nil, err
+	}
+
+	return body.Cryptocurrencies, nil
+}
+
+//
+// Fetches data from the CoinMarketCap api.
+// Example response:
+// {
+//  "status": {
+//    "timestamp": "2020-08-10T15:00:49.040Z",
+//    "error_code": 0,
+//    "error_message": null,
+//    "elapsed": 100,
+//    "credit_count": 1,
+//    "notice": null
+//  },
+//  "data": [
+//    {
+//      "id": 1,
+//      "name": "Bitcoin",
+//      "symbol": "BTC",
+//      "slug": "bitcoin",
+//      "num_market_pairs": 8548,
+//      "date_added": "2013-04-28T00:00:00.000Z",
+//      "tags": [
+//        "mineable",
+//        "sha-256",
+//        "state-channels",
+//        "pow",
+//        "store-of-value"
+//      ],
+//      "max_supply": 21000000,
+//      "circulating_supply": 18456718,
+//      "total_supply": 18456718,
+//      "platform": null,
+//      "cmc_rank": 1,
+//      "last_updated": "2020-08-10T14:59:36.000Z",
+//      "quote": {
+//        "USD": {
+//          "price": 11923.3731273,
+//          "volume_24h": 25515630084.5008,
+//          "percent_change_1h": 0.104577,
+//          "percent_change_24h": 2.62422,
+//          "percent_change_7d": 5.67848,
+//          "market_cap": 220066335419.3542,
+//          "last_updated": "2020-08-10T14:59:36.000Z"
+//        }
+//      }
+//    },
+//    {
+//      "id": 1027,
+//      "name": "Ethereum",
+//      ...
+func fetchCryptocurrencies() ([]byte,error) {
+	c := http.DefaultClient
+	req, err := http.NewRequest(http.MethodGet, UPSTREAM_API_URL, nil)
+	if err != nil {
+		log.Printf("Failed to create new request: %v", err)
+		return nil, err
+	}
+
+	// Set up the required headers. You can get more info from the API docs.
+	req.Header.Set("X-CMC_PRO_API_KEY", UPSTREAM_API_KEY)
+	req.Header.Set("Accept", "application/json")
+
+	// Set query parameters.
+	q := url.Values{}
+	q.Add("start", OFFSET)
+	q.Add("limit", LIMIT)
+	q.Add("convert", CURRENCY)
+
+	// Make the request.
+	res, err := c.Do(req)
+	if err != nil {
+		log.Printf("Failed to fetch data from upstream API: %v", err)
+		return nil, err
+	}
+
+	// Read the response body.
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Printf("Failed to read response body: %v", err)
+		return nil, err
+	}
+
+	return b, nil
+}

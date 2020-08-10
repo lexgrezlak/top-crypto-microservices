@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/streadway/amqp"
 	"log"
-	"top-coins/pricing-service/util"
+	"top-coins/pricing-service/api"
 )
 
 const (
@@ -19,6 +19,7 @@ func main() {
 	defer conn.Close()
 	log.Println("Established AMQP connection")
 
+	// Set up the channel.
 	ch, err := conn.Channel()
 	if err != nil {
 		log.Fatalf("Could not open ch: %v", err)
@@ -37,9 +38,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to start consumer: %v", err)
 	}
-	res, err := util.FetchPrices()
+
+	// Get the data from the upstream API.
+	cryptos, err := api.GetCryptocurrencies()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to get cryptocurrencies: %v",err)
 	}
-	log.Println(res)
+	log.Println(cryptos)
 }
