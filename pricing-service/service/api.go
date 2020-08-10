@@ -41,7 +41,7 @@ type Cryptocurrency struct {
 	Quote  Quote  `json:"quote"`
 }
 
-type FetchCryptocurrenciesBody struct {
+type fetchCryptocurrenciesBody struct {
 	Cryptocurrencies []Cryptocurrency `json:"data"`
 }
 
@@ -50,7 +50,8 @@ type api struct {
 }
 
 type CryptocurrencyDatastore interface {
-	GetCryptocurrencies() ([]Cryptocurrency, error)
+	FetchCryptocurrencies() ([]byte, error)
+	ProcessCryptocurrencyBytes() ([]Cryptocurrency, error)
 }
 
 // We pass our custom HttpClient to enable mocking.
@@ -59,14 +60,9 @@ func NewAPI(c HttpClient) *api {
 }
 
 // Unmarshals the response body received from fetch and returns the proper cryptocurrencies.
-func (api *api) GetCryptocurrencies() ([]Cryptocurrency, error) {
-	res, err := api.fetchCryptocurrencies()
-	if err != nil {
-		log.Printf("Failed to fetch cryptocurrencies: %v", err)
-		return nil, err
-	}
-	var body FetchCryptocurrenciesBody
-	if err := json.Unmarshal(res, &body); err != nil {
+func (api *api) ProcessCryptocurrencyBytes(bytes []byte) ([]Cryptocurrency, error) {
+	var body fetchCryptocurrenciesBody
+	if err := json.Unmarshal(bytes, &body); err != nil {
 		log.Printf("Failed to unmarshal fetch cryptocurrencies response: %v", err)
 		return nil, err
 	}
@@ -123,7 +119,7 @@ func (api *api) GetCryptocurrencies() ([]Cryptocurrency, error) {
 //      "id": 1027,
 //      "name": "Ethereum",
 //      ...
-func (api *api) fetchCryptocurrencies() ([]byte, error) {
+func (api *api) FetchCryptocurrencies() ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, UPSTREAM_API_URL, nil)
 	if err != nil {
 		log.Printf("Failed to create new request: %v", err)

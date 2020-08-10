@@ -44,7 +44,7 @@ func main() {
 	var c service.HttpClient
 	c = http.DefaultClient
 	api := service.NewAPI(c)
-	cryptos, err := api.GetCryptocurrencies()
+	cryptos, err := api.ProcessCryptocurrencyBytes()
 	if err != nil {
 		log.Fatalf("Failed to get cryptocurrencies: %v",err)
 	}
