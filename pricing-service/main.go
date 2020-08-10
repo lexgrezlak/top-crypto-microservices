@@ -3,7 +3,8 @@ package main
 import (
 	"github.com/streadway/amqp"
 	"log"
-	"top-coins/pricing-service/api"
+	"net/http"
+	"top-coins/pricing-service/service"
 )
 
 const (
@@ -40,6 +41,9 @@ func main() {
 	}
 
 	// Get the data from the upstream API.
+	var c service.HttpClient
+	c = http.DefaultClient
+	api := service.NewAPI(c)
 	cryptos, err := api.GetCryptocurrencies()
 	if err != nil {
 		log.Fatalf("Failed to get cryptocurrencies: %v",err)

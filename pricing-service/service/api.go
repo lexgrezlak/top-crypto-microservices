@@ -1,6 +1,6 @@
 // API docs: https://coinmarketcap.com/api/documentation/v1/#section/Quick-Start-Guide
 
-package api
+package service
 
 import (
 	"encoding/json"
@@ -14,31 +14,53 @@ const (
 	// Normally it should be an environment variable.
 	UPSTREAM_API_KEY = "60c9c458-d3f0-47c7-8b60-6389c5cf9124"
 	UPSTREAM_API_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest"
-	CURRENCY = "USD"
-	LIMIT = "5000"
-	OFFSET = "1"
+	CURRENCY         = "USD"
+	LIMIT            = "5000"
+	OFFSET           = "1"
 )
+
+// We define our own interface so that we can mock it,
+// and therefore test our fetch functions.
+type HttpClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
 
 // There are also other fields available. Check the docs for more information.
 type Currency struct {
 	Price float32 `json:"price"`
 }
 
+type Quote struct {
+	USD Currency `json:"USD"`
+	// We could also define fields for other currencies such as EUR
+	// but USD is the one we're using - set in the `const` variable above.
+}
+
 type Cryptocurrency struct {
 	Symbol string `json:"symbol"`
-	Quote struct{
-		// We could also define fields for other currencies such as EUR
-		// but USD is the one we're using - set in the `const` variable above.
-		USD Currency`json:"USD"`
-	}`json:"quote"`
+	Quote  Quote  `json:"quote"`
 }
 
 type FetchCryptocurrenciesBody struct {
 	Cryptocurrencies []Cryptocurrency `json:"data"`
 }
 
-func GetCryptocurrencies() ([]Cryptocurrency, error) {
-	res, err := fetchCryptocurrencies()
+type api struct {
+	c HttpClient
+}
+
+type CryptocurrencyDatastore interface {
+	GetCryptocurrencies() ([]Cryptocurrency, error)
+}
+
+// We pass our custom HttpClient to enable mocking.
+func NewAPI(c HttpClient) *api {
+	return &api{c}
+}
+
+// Unmarshals the response body received from fetch and returns the proper cryptocurrencies.
+func (api *api) GetCryptocurrencies() ([]Cryptocurrency, error) {
+	res, err := api.fetchCryptocurrencies()
 	if err != nil {
 		log.Printf("Failed to fetch cryptocurrencies: %v", err)
 		return nil, err
@@ -101,8 +123,7 @@ func GetCryptocurrencies() ([]Cryptocurrency, error) {
 //      "id": 1027,
 //      "name": "Ethereum",
 //      ...
-func fetchCryptocurrencies() ([]byte,error) {
-	c := http.DefaultClient
+func (api *api) fetchCryptocurrencies() ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, UPSTREAM_API_URL, nil)
 	if err != nil {
 		log.Printf("Failed to create new request: %v", err)
@@ -120,7 +141,7 @@ func fetchCryptocurrencies() ([]byte,error) {
 	q.Add("convert", CURRENCY)
 
 	// Make the request.
-	res, err := c.Do(req)
+	res, err := api.c.Do(req)
 	if err != nil {
 		log.Printf("Failed to fetch data from upstream API: %v", err)
 		return nil, err
