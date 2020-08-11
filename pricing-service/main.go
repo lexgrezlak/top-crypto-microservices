@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/streadway/amqp"
 	"log"
 	"net/http"
@@ -26,7 +27,9 @@ func main() {
 		log.Fatalf("Could not open ch: %v", err)
 	}
 	defer ch.Close()
-	q, err := ch.QueueDeclare("pricing_queue", false, false, false, false, nil)
+
+	q, err := ch.QueueDeclare("pricing_queue", false, false,
+		false, false, nil)
 	if err != nil {
 		log.Fatalf("Failed to declare queue", err)
 	}
@@ -35,7 +38,7 @@ func main() {
 		log.Fatalf("Failed to set prefetch settings: %v", err)
 	}
 
-	_, err = ch.Consume(q.Name, "", false, false, false, false, nil)
+	msgs, err := ch.Consume(q.Name, "", false, false, false, false, nil)
 	if err != nil {
 		log.Fatalf("Failed to start consumer: %v", err)
 	}
@@ -45,16 +48,37 @@ func main() {
 	c = http.DefaultClient
 	api := service.NewAPI(c)
 
-	// Fetch data from the upstream API.
-	bytes, err := api.FetchCryptocurrencies()
-	if err != nil {
-		log.Fatalf("Failed to fetch cryptocurrencies: %v",err)
-	}
+	forever := make(chan bool)
+	go func() {
+		for d := range msgs {
+			// Fetch data from the upstream API.
+			bytes, err := api.FetchCryptocurrencies()
+			if err != nil {
+				log.Fatalf("Failed to fetch cryptocurrencies: %v", err)
+			}
 
-	// Process the bytes into []Cryptocurrency
-	cryptos, err := api.ProcessCryptocurrencyBytes(bytes)
-	if err != nil {
-		log.Fatalf("Failed to get cryptocurrencies: %v",err)
-	}
-	log.Println(cryptos)
+			// Process the bytes into []Cryptocurrency
+			cryptos, err := api.ProcessCryptocurrencyBytes(bytes)
+			if err != nil {
+				log.Fatalf("Failed to get cryptocurrencies: %v", err)
+			}
+
+			log.Println(cryptos)
+			body, err := json.Marshal(cryptos)
+			if err != nil {
+				log.Fatalf("Failed to marshal cryptocurrencies: %v", err)
+			}
+
+			if err = ch.Publish("", d.ReplyTo, false, false, amqp.Publishing{
+				ContentType:   "text/plain",
+				CorrelationId: d.CorrelationId,
+				Body:          body,
+			}); err != nil {
+				log.Fatalf("Failed to publish message: %v", err)
+			}
+			d.Ack(false)
+		}
+	}()
+	log.Println("Listening for RPC requests")
+	<-forever
 }
