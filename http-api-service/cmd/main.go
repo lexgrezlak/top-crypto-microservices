@@ -12,22 +12,6 @@ const (
 	RABBIT_URL    = "amqp://guest:guest@localhost:5672"
 )
 
-// There are also other fields available. Check the docs for more information.
-type Currency struct {
-	Price float32 `json:"price"`
-}
-
-type Quote struct {
-	USD Currency `json:"USD"`
-	// We could also define fields for other currencies such as EUR
-	// but USD is the one we're using - set in the `const` variable above.
-}
-
-type Cryptocurrency struct {
-	Symbol string `json:"symbol"`
-	Quote  Quote  `json:"quote"`
-}
-
 func main() {
 	// Connect to RabbitMQ.
 	conn, err := amqp.Dial(RABBIT_URL)
@@ -45,6 +29,7 @@ func main() {
 	// Set up handlers.
 	mux.Handle("/", handler.GetCryptocurrencies(conn))
 
+	// Set up the server.
 	server := &http.Server{
 		Addr:         ":8080",
 		Handler:      mux,
@@ -55,5 +40,4 @@ func main() {
 	// Start the server.
 	err = server.ListenAndServe()
 	log.Fatalf("Failed to listen: %v", err)
-
 }

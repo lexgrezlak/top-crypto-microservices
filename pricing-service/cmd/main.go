@@ -5,7 +5,7 @@ import (
 	"github.com/streadway/amqp"
 	"log"
 	"net/http"
-	"top-coins/pricing-service/service"
+	"top-coins/pricing-service/internal/service"
 )
 
 const (
@@ -58,7 +58,7 @@ func main() {
 				log.Fatalf("Failed to fetch cryptocurrencies: %v", err)
 			}
 
-			// Process the bytes into []Cryptocurrency
+			// Process the bytes into []Cryptocurrency.
 			cryptos, err := api.ProcessCryptocurrencyBytes(bytes)
 			if err != nil {
 				log.Fatalf("Failed to get cryptocurrencies: %v", err)

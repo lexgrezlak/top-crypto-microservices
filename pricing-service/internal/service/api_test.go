@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
-	"top-coins/pricing-service/testUtil"
+	"top-coins/pricing-service/internal/testUtil"
 )
 
 func TestFetchCryptocurrencies(t *testing.T) {
@@ -37,25 +37,25 @@ func TestFetchCryptocurrencies(t *testing.T) {
 	// and CmpErr will make the test fail.
 	mockErr := errors.New("hello world")
 
+	type want struct {
+		bytes []byte
+		err   error
+	}
+
 	testCases := []struct {
 		name string
 		c    HttpClient
-		want struct {
-			bytes []byte
-			err   error
-		}
+		want want
 	}{
 		{
 			"upstream api replies with an error",
 			mockHttpClient{MockDo: func(req *http.Request) (*http.Response, error) {
 				return nil, mockErr
 			}},
-			struct {
-				bytes []byte
-				err   error
-			}{
-				bytes: nil,
-				err:   mockErr},
+			want{
+				nil,
+				mockErr,
+			},
 		},
 		{
 			"upstream api replies with a proper response",
@@ -64,10 +64,7 @@ func TestFetchCryptocurrencies(t *testing.T) {
 					Body: ioutil.NopCloser(bytes.NewReader(jsonCryptoBytes)),
 				}, nil
 			}},
-			struct {
-				bytes []byte
-				err   error
-			}{
+			want{
 				bytes: jsonCryptoBytes,
 				err:   nil,
 			},
@@ -110,19 +107,18 @@ func TestGetCryptocurrencies(t *testing.T) {
 		t.Fatalf("Failed to marshal cryptocurrencies: %v", err)
 	}
 
+	type want struct {
+		Cryptos []Cryptocurrency
+		err     error
+	}
+
 	testCases := []struct {
 		name string
-		want struct {
-			Cryptos []Cryptocurrency
-			err     error
-		}
+		want want
 	}{
 		{
 			"valid data",
-			struct {
-				Cryptos []Cryptocurrency
-				err     error
-			}{
+			want{
 				Cryptos: cryptos,
 				err:     nil,
 			},
