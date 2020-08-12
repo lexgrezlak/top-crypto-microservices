@@ -9,29 +9,30 @@ import (
 )
 
 const (
-	RABBIT_URL = "amqp://guest:guest@localhost:5672"
+	RABBIT_URL    = "amqp://guest:guest@localhost:5672"
+	PRICING_QUEUE = "pricing_queue"
 )
 
 func main() {
 	// Connect to RabbitMQ.
 	conn, err := amqp.Dial(RABBIT_URL)
 	if err != nil {
-		log.Fatalf("Could not establish AMQP connection: %v", err)
+		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
 	}
 	defer conn.Close()
-	log.Println("Established AMQP connection")
+	log.Println("Connected to RabbitMQ")
 
 	// Set up the channel.
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Fatalf("Could not open ch: %v", err)
+		log.Fatalf("Failed to open a channel: %v", err)
 	}
 	defer ch.Close()
 
-	q, err := ch.QueueDeclare("pricing_queue", false, false,
+	q, err := ch.QueueDeclare(PRICING_QUEUE, false, false,
 		false, false, nil)
 	if err != nil {
-		log.Fatalf("Failed to declare queue", err)
+		log.Fatalf("Failed to declare a queue", err)
 	}
 
 	if err = ch.Qos(1, 0, false); err != nil {
@@ -40,7 +41,7 @@ func main() {
 
 	msgs, err := ch.Consume(q.Name, "", false, false, false, false, nil)
 	if err != nil {
-		log.Fatalf("Failed to start consumer: %v", err)
+		log.Fatalf("Failed to register a consumer: %v", err)
 	}
 
 	// Set up the API.
@@ -76,7 +77,11 @@ func main() {
 			}); err != nil {
 				log.Fatalf("Failed to publish message: %v", err)
 			}
-			d.Ack(false)
+			if err = d.Ack(false); err != nil {
+				log.Printf("Failed to acknowledge message: %v", err)
+			} else {
+				log.Println("Acknowledged message")
+			}
 		}
 	}()
 	log.Println("Listening for RPC requests")
