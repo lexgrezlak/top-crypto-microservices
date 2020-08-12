@@ -5,12 +5,12 @@ import (
 	"github.com/streadway/amqp"
 	"log"
 	"math/rand"
+	"strconv"
 )
 
 const (
 	TEXT_PLAIN    = "text/plain"
 )
-
 
 // Used to generate correlation ID along with randInt.
 // For more info check https://www.rabbitmq.com/tutorials/tutorial-six-go.html
@@ -28,7 +28,7 @@ func randInt(min int, max int) int {
 	return min + rand.Intn(max-min)
 }
 
-func HandleRPC(conn *amqp.Connection, queue string) ([]byte, error) {
+func HandleRPC(conn *amqp.Connection, queue string, limit int) ([]byte, error) {
 	// Set up the channel.
 	ch, err := conn.Channel()
 	if err != nil {
@@ -54,6 +54,7 @@ func HandleRPC(conn *amqp.Connection, queue string) ([]byte, error) {
 	if err = ch.Publish("", queue, false, false, amqp.Publishing{
 		ContentType:   TEXT_PLAIN,
 		CorrelationId: corrId,
+		Body: []byte(strconv.Itoa(limit)),
 		ReplyTo:       q.Name,
 	}); err != nil {
 		log.Fatalf("Failed to publish message: %v", err)

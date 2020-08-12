@@ -18,12 +18,7 @@ const (
 	CURRENCY         = "USD"
 	// 100 is the max limit CryptoCompare allows to fetch for one page.
 	PAGE_SIZE 	      = 100
-	// The number of results to fetch set by the problem specification.
-	//
-	// Likely it would've been better to pass the fetch size through the consumer,
-	// however, it's our first shot with RabbitMQ, and we currently don't know
-	// how to do this.
-	FETCH_SIZE = 200
+
 )
 
 // We define our own interface so that we can mock it,
@@ -59,11 +54,11 @@ type CryptocurrencyDatastore interface {
 	GetCryptocurrencySymbols() ([]string, error)
 }
 
-func (api *api) GetCryptocurrencySymbols() ([]string, error) {
+func (api *api) GetCryptocurrencySymbols(limit int) ([]string, error) {
 	var symbols []string
-	pagesToFetchCount := FETCH_SIZE / PAGE_SIZE
-
-	// Fetch the cryptos, process them, and append to the symbols array, for the number of pages
+	pagesToFetchCount := limit / PAGE_SIZE
+	// Fetch the cryptos, process them, and append to the symbols array, for the number of pages.
+	// There's probably a more efficient way to do this.
 	for pageNum := 0; pageNum < pagesToFetchCount; pageNum++ {
 		bytes, err := api.FetchCryptocurrencies(pageNum)
 		if err != nil {

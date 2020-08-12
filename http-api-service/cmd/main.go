@@ -16,7 +16,7 @@ func main() {
 	// Connect to RabbitMQ.
 	conn, err := amqp.Dial(RABBIT_URL)
 	if err != nil {
-		log.Fatalf("Could not establish AMQP connection: %v", err)
+		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
 	}
 	defer conn.Close()
 	log.Println("Established AMQP connection")

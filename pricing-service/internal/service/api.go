@@ -8,15 +8,16 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 )
 
 const (
-	// Normally it should be an environment variable.
+	// Normally these should be environment variables.
 	UPSTREAM_API_KEY = "60c9c458-d3f0-47c7-8b60-6389c5cf9124"
 	UPSTREAM_API_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest"
 	CURRENCY         = "USD"
-	LIMIT            = "5000"
 	OFFSET           = "1"
+	MAX_LIMIT 		 = 5000
 )
 
 // We define our own interface so that we can mock it,
@@ -50,13 +51,29 @@ type api struct {
 }
 
 type CryptocurrencyDatastore interface {
-	FetchCryptocurrencies() ([]byte, error)
+	FetchCryptocurrencies(limit int) ([]byte, error)
 	ProcessCryptocurrencyBytes() ([]Cryptocurrency, error)
+	GetCryptocurrencies(limit int) ([]Cryptocurrency, error)
 }
 
 // We pass our custom HttpClient to enable mocking.
 func NewAPI(c HttpClient) *api {
 	return &api{c}
+}
+
+func (api *api) GetCryptocurrencies(limit int) ([]Cryptocurrency, error) {
+	bytes, err := api.FetchCryptocurrencies(limit)
+	if err != nil {
+		log.Fatalf("Failed to fetch cryptocurrencies: %v", err)
+		return nil, err
+	}
+
+	cryptos, err := api.ProcessCryptocurrencyBytes(bytes)
+	if err != nil {
+		log.Fatalf("Failed to process cryptocurrency bytes: %v", err)
+		return nil, err
+	}
+	return cryptos, nil
 }
 
 // Unmarshals the response body received from fetch and returns the proper cryptocurrencies.
@@ -119,7 +136,7 @@ func (api *api) ProcessCryptocurrencyBytes(bytes []byte) ([]Cryptocurrency, erro
 //      "id": 1027,
 //      "name": "Ethereum",
 //      ...
-func (api *api) FetchCryptocurrencies() ([]byte, error) {
+func (api *api) FetchCryptocurrencies(limit int) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, UPSTREAM_API_URL, nil)
 	if err != nil {
 		log.Printf("Failed to create new request: %v", err)
@@ -133,8 +150,10 @@ func (api *api) FetchCryptocurrencies() ([]byte, error) {
 	// Set query parameters.
 	q := url.Values{}
 	q.Add("start", OFFSET)
-	q.Add("limit", LIMIT)
+	q.Add("limit", strconv.Itoa(limit))
 	q.Add("convert", CURRENCY)
+
+	req.URL.RawQuery = q.Encode()
 
 	// Make the request.
 	res, err := api.c.Do(req)

@@ -1,6 +1,0 @@
-2020-08-11 18:01:59 =SUPERVISOR REPORT====
-     Supervisor: {<0.3066.2>,rabbit_channel_sup_sup}
-     Context:    shutdown_error
-     Reason:     shutdown
-     Offender:   [{nb_children,1},{name,channel_sup},{mfargs,{rabbit_channel_sup,start_link,[]}},{restart_type,temporary},{shutdown,infinity},{child_type,supervisor}]
-

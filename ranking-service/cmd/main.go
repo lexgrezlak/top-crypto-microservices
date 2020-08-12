@@ -5,15 +5,13 @@ import (
 	"github.com/streadway/amqp"
 	"log"
 	"net/http"
+	"strconv"
 	"top-coins/ranking-service/internal/service"
 )
 
 const (
 	RABBIT_URL    = "amqp://guest:guest@localhost:5672"
 	RANKING_QUEUE = "ranking_queue"
-	// We need the page 0 and page 1 of size 100
-	// in order to get the 200 coins defined by the specification.
-	COUNT = 200
 )
 
 func main() {
@@ -55,16 +53,13 @@ func main() {
 	forever := make(chan bool)
 	go func() {
 		for d := range msgs {
-			// Get the symbol count from the delivery body.
-			log.Println(d.Body)
-			var symbolCount string
-			if err = json.Unmarshal(d.Body, &symbolCount); err != nil {
-				log.Fatalf("Failed to unmarshal symbol count: %v", err)
+			// The fetch size passed by the consumer.
+			strLimit := string(d.Body)
+			limit, err := strconv.Atoi(strLimit)
+			if err != nil {
+				log.Fatalf("Failed to convert a string limit to an integer: %v", err)
 			}
-			log.Println(symbolCount)
-
-
-			symbols, err := api.GetCryptocurrencySymbols(200)
+			symbols, err := api.GetCryptocurrencySymbols(limit)
 			body, err := json.Marshal(symbols)
 			if err != nil {
 				log.Fatalf("Failed to get cryptocurrency symbols: %v", err)
@@ -74,12 +69,12 @@ func main() {
 				CorrelationId: d.CorrelationId,
 				Body:          body,
 			}); err != nil {
-				log.Fatalf("Failed to publish message: %v", err)
+				log.Fatalf("Failed to a publish message: %v", err)
 			}
 			if err = d.Ack(false); err != nil {
-				log.Printf("Failed to acknowledge message: %v", err)
+				log.Printf("Failed to acknowledge a message: %v", err)
 			} else {
-				log.Println("Acknowledged message")
+				log.Println("Acknowledged a message")
 			}
 		}
 	}()

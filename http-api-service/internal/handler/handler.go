@@ -10,17 +10,23 @@ import (
 const (
 	PRICING_QUEUE = "pricing_queue"
 	RANKING_QUEUE = "ranking_queue"
+	PRICING_LIMIT = 100
+	RANKING_LIMIT = PRICING_LIMIT
 )
-
 
 // We're returning a handler to enable dependency injection.
 func GetCryptocurrencies(conn *amqp.Connection) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ranking, err := service.HandleRPC(conn, RANKING_QUEUE)
+		pricing, err := service.HandleRPC(conn, PRICING_QUEUE, PRICING_LIMIT)
 		if err != nil {
-			log.Printf("Failed to get messages: %v", err)
-			return
+			log.Printf("Failed to handle pricing RPC request: %v", err)
 		}
-		w.Write(ranking)
+		ranking, err := service.HandleRPC(conn, RANKING_QUEUE, RANKING_LIMIT)
+		if err != nil {
+			log.Printf("Failed to handle ranking RPC request: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(append(pricing, ranking...))
 	}
 }

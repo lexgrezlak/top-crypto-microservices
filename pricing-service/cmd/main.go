@@ -5,6 +5,7 @@ import (
 	"github.com/streadway/amqp"
 	"log"
 	"net/http"
+	"strconv"
 	"top-coins/pricing-service/internal/service"
 )
 
@@ -52,19 +53,17 @@ func main() {
 	forever := make(chan bool)
 	go func() {
 		for d := range msgs {
-			// Fetch data from the upstream API.
-			bytes, err := api.FetchCryptocurrencies()
+			strLimit := string(d.Body)
+			limit, err := strconv.Atoi(strLimit)
 			if err != nil {
-				log.Fatalf("Failed to fetch cryptocurrencies: %v", err)
+				log.Fatalf("Failed to convert a string limit to an integer: %v", err)
 			}
 
-			// Process the bytes into []Cryptocurrency.
-			cryptos, err := api.ProcessCryptocurrencyBytes(bytes)
+			cryptos, err := api.GetCryptocurrencies(limit)
 			if err != nil {
 				log.Fatalf("Failed to get cryptocurrencies: %v", err)
 			}
 
-			log.Println(cryptos)
 			body, err := json.Marshal(cryptos)
 			if err != nil {
 				log.Fatalf("Failed to marshal cryptocurrencies: %v", err)
@@ -75,12 +74,12 @@ func main() {
 				CorrelationId: d.CorrelationId,
 				Body:          body,
 			}); err != nil {
-				log.Fatalf("Failed to publish message: %v", err)
+				log.Fatalf("Failed to publish a message: %v", err)
 			}
 			if err = d.Ack(false); err != nil {
-				log.Printf("Failed to acknowledge message: %v", err)
+				log.Printf("Failed to acknowledge a message: %v", err)
 			} else {
-				log.Println("Acknowledged message")
+				log.Println("Acknowledged a message")
 			}
 		}
 	}()
